@@ -1,150 +1,91 @@
-let favNumber = 8;
-let baseURL = "http://numbersapi.com";
+const express = require('express');
+const app = express();
+const ExpressError = require('./expressError');
 
-// 1.
-async function part1() {
-  let data = await $.getJSON(`${baseURL}/${favNumber}?json`);
-  console.log(data);
-};
+const { convertAndValidateNumsArray, findMode, findMean, findMedian } = require('./helpers');
 
-
-
-//next
-
-const favNumbers = [7, 11, 22];
-async function part2() {
-  let data = await $.getJSON(`${baseURL}/${favNumbers}?json`);
-  console.log(data);
-}
-//next
-
-
-
-
-async function part3() {
-    let facts = await Promise.all(
-      Array.from({ length: 4 }, () => $.getJSON(`${baseURL}/${favNumber}?json`))
-    );
-    facts.forEach(data => {
-      $('body').append(`<p>${data.text}</p>`);
-    });
+app.get('/mean', function(req, res, next) {
+  if (!req.query.nums) {
+    throw new ExpressError('You must pass a query key of nums with a comma-separated list of numbers.', 400)
+  }
+  let numsAsStrings = req.query.nums.split(',');
+  // check if anything bad was put in
+  let nums = convertAndValidateNumsArray(numsAsStrings);
+  if (nums instanceof Error) {
+    throw new ExpressError(nums.message);
   }
 
 
-// PART 2
-
-let singleCard = "queen of diamonds";
-let baseURL = "https://deckofcardsapi.com/api/deck";
-
-async function part1() {
-    let data = await $.getJSON(`${baseURL}/${singleCard}?json`);
-    console.log(data);
-}
-
-//next
-
-async function part2() {
-  let firstCardData = await $.getJSON(`${baseURL}/new/draw/`);
-  let deckId = firstCardData.deck_id;
-  let secondCardData = await $.getJSON(`${baseURL}/${deckId}/draw/`);
-  [firstCardData, secondCardData].forEach(card => {
-    let { suit, value } = card.cards[0];
-    console.log(`${value.toLowerCase()} of ${suit.toLowerCase()}`);
-  });
-}
-//next
-
-async function setup() {
-  let $btn = $('button');
-  let $cardArea = $('#card-area');
-
-  let deckData = await $.getJSON(`${baseURL}/new/shuffle/`);
-  $btn.show().on('click', async function() {
-    let cardData = await $.getJSON(`${baseURL}/${deckData.deck_id}/draw/`);
-    let cardSrc = cardData.cards[0].image;
-    let angle = Math.random() * 90 - 45;
-    let randomX = Math.random() * 40 - 20;
-    let randomY = Math.random() * 40 - 20;
-    $cardArea.append(
-      $('<img>', {
-        src: cardSrc,
-        css: {
-          transform: `translate(${randomX}px, ${randomY}px) rotate(${angle}deg)`
-        }
-      })
-    );
-    if (cardData.remaining === 0) $btn.remove();
-  });
-}
-setup();
-
-
-//part3
-
-
-
-$(function() {
-  let baseURL = "https://pokeapi.co/api/v2";
-
-  async function part1() {
-    let data = await $.getJSON(`${baseURL}/pokemon/?limie=1000`);
-    console.log(data);
+  let result = {
+    operation: "mean",
+    result: findMean(nums)  
   }
 
+  return res.send(result);
+});
 
-//next
-async function part2() {
-  let allData = await $.getJSON(`${baseURL}/pokemon/?limit=1000`);
-  let randomPokemonUrls = [];
-  for (let i = 0; i < 3; i++) {
-    let randomIdx = Math.floor(Math.random() * allData.results.length);
-    let url = allData.results.splice(randomIdx, 1)[0].url;
-    randomPokemonUrls.push(url);
+app.get('/median', function(req, res, next) {
+  if (!req.query.nums) {
+    throw new ExpressError('You must pass a query key of nums with a comma-separated list of numbers.', 400)
   }
-  let pokemonData = await Promise.all(
-    randomPokemonUrls.map(url => $.getJSON(url))
-  );
-  pokemonData.forEach(p => console.log(p));
-}
-
-
-//next
-let $btn = $("button");
-let $pokeArea = $("#pokemon-area");
-
-$btn.on("click", async function() {
-  $pokeArea.empty();
-  let allData = await $.getJSON(`${baseURL}/pokemon/?limit=1000`);
-  let randomPokemonUrls = [];
-  for (let i = 0; i < 3; i++) {
-    let randomIdx = Math.floor(Math.random() * allData.results.length);
-    let url = allData.results.splice(randomIdx, 1)[0].url;
-    randomPokemonUrls.push(url);
+  let numsAsStrings = req.query.nums.split(',');
+  // check if anything bad was put in
+  let nums = convertAndValidateNumsArray(numsAsStrings);
+  if (nums instanceof Error) {
+    throw new ExpressError(nums.message);
   }
-  let pokemonData = await Promise.all(
-    randomPokemonUrls.map(url => $.getJSON(url))
-  );
-  let speciesData = await Promise.all(
-    pokemonData.map(p => $.getJSON(p.species.url))
-  );
-  speciesData.forEach((d, i) => {
-    let descriptionObj = d.flavor_text_entries.find(function(entry) {
-      return entry.language.name === "en";
-    });
-    let description = descriptionObj ? descriptionObj.flavor_text : "";
-    let name = pokemonData[i].name;
-    let imgSrc = pokemonData[i].sprites.front_default;
-    $pokeArea.append(makePokeCard(name, imgSrc, description));
+
+  let result = {
+    operation: "median",
+    result: findMedian(nums)
+  }
+
+  return res.send(result);
+  
+});
+
+app.get('/mode', function(req, res, next) {
+  if (!req.query.nums) {
+    throw new ExpressError('You must pass a query key of nums with a comma-separated list of numbers.', 400)
+  }
+  let numsAsStrings = req.query.nums.split(',');
+  // check if anything bad was put in
+  let nums = convertAndValidateNumsArray(numsAsStrings);
+  if (nums instanceof Error) {
+    throw new ExpressError(nums.message);
+  }
+
+  let result = {
+    operation: "mode",
+    result: findMode(nums)
+  }
+
+  return res.send(result);
+
+ 
+});
+
+/** general error handler */
+
+app.use(function (req, res, next) {
+  const err = new ExpressError("Not Found",404);
+
+  // pass the error to the next piece of middleware
+  return next(err);
+});
+
+/** general error handler */
+
+app.use(function (err, req, res, next) {
+  res.status(err.status || 500);
+
+  return res.json({
+    error: err,
+    message: err.message
   });
 });
 
-function makePokeCard(name, imgSrc, description) {
-  return `
-    <div class="card">
-      <h1>${name}</h1>
-      <img src=${imgSrc} />
-      <p>${description}</p>
-    </div>
-  `;
-}
+
+app.listen(3000, function() {
+  console.log(`Server starting on port 3000`);
 });
